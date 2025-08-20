@@ -1,0 +1,10 @@
+{
+  "name": "m324",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "setup:git-hooks": "git config core.hooksPath .git-hooks",
+    "postinstall": "npm run setup:git-hooks"
+  }
+}
+
