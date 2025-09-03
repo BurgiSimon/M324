@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: ["Tests", "Build"]
+    types:
+      - completed
+    branches: [ main ]
+
+jobs:
+  release:
+    name: Create Release Tag
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for semantic versioning
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Get latest commit message
+      id: commit_message
+      run: echo "message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+      
+    - name: Run semantic versioning script
+      id: version
+      run: |
+        # Run the semantic versioning script
+        node scripts/semantic-version.js
+        
+        # Get the latest tag that was created
+        LATEST_TAG=$(git describe --tags --abbrev=0)
+        echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+        echo "version=${LATEST_TAG#v}" >> $GITHUB_OUTPUT
+        
+    - name: Push tags
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git push origin --tags
+        
+    - name: Create GitHub Release
+      if: success() && steps.version.outputs.tag != ''
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.tag }}
+        release_name: Release ${{ steps.version.outputs.version }}
+        body: |
+          ## Changes
+          ${{ steps.commit_message.outputs.message }}
+          
+          ## Automated Release
+          This release was automatically created based on conventional commits.
+        draft: false
+        prerelease: false
