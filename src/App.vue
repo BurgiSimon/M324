@@ -1,8 +1,7 @@
-<script setup></script>
+<script setup lang="ts">
+import TextPressure from './components/TextPressure.vue'
+</script>
 
-<!-- Component ported from https://codepen.io/JuanFuentes/full/rgXKGQ -->
-<!-- Font used - https://compressa.preusstype.com/ -->
-  
 <template>
   <TextPressure
     text="Hello M324"
@@ -12,12 +11,8 @@
     :width="true"
     :weight="true"
     :italic="true"
-    text-color="#00000"
+    text-color="#000000"
     stroke-color="#27FF64"
     :min-font-size="36"
   />
 </template>
-
-<script setup lang="ts">
-  import TextPressure from "./components/TextPressure.vue";
-</script>

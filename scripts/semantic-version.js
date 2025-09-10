@@ -41,7 +41,7 @@ function getLatestCommitMessage() {
     return result.trim();
   } catch (error) {
     console.error('Error getting commit message:', error.message);
-    // eslint-disable-next-line no-undef
+     
     process.exit(1);
   }
 }
@@ -175,7 +175,7 @@ function main() {
 }
 
 // Run the script
-// eslint-disable-next-line no-undef
+ 
 if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
