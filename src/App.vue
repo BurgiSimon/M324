@@ -1,10 +1,23 @@
 <script setup></script>
 
+<!-- Component ported from https://codepen.io/JuanFuentes/full/rgXKGQ -->
+<!-- Font used - https://compressa.preusstype.com/ -->
+  
 <template>
-  <h1>M324</h1>
-  <p>
-    Das hier ist ein Test 2
-  </p>
-</template> 
+  <TextPressure
+    text="Hello M324"
+    :flex="true"
+    :alpha="false"
+    :stroke="false"
+    :width="true"
+    :weight="true"
+    :italic="true"
+    text-color="#00000"
+    stroke-color="#27FF64"
+    :min-font-size="36"
+  />
+</template>
 
-<style scoped></style>
+<script setup lang="ts">
+  import TextPressure from "./components/TextPressure.vue";
+</script>
