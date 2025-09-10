@@ -1,3 +1,30 @@
-#!/bin/sh
-node scripts/semantic-version.js
+#!/bin/bash
 
+# Post-commit hook for semantic versioning
+# This hook runs after each commit and creates tags based on conventional commits
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+
+# Path to the semantic versioning script
+SEMANTIC_SCRIPT="$PROJECT_ROOT/scripts/semantic-version.js"
+
+# Check if the semantic versioning script exists
+if [ ! -f "$SEMANTIC_SCRIPT" ]; then
+    echo "Warning: Semantic versioning script not found at $SEMANTIC_SCRIPT"
+    exit 0
+fi
+
+# Check if Node.js is available
+if ! command -v node &> /dev/null; then
+    echo "Warning: Node.js is not installed. Cannot run semantic versioning script."
+    exit 0
+fi
+
+# Run the semantic versioning script
+echo "Running semantic versioning..."
+cd "$PROJECT_ROOT"
+node "$SEMANTIC_SCRIPT"
+
+exit 0
