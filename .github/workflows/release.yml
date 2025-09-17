@@ -3,65 +3,94 @@ name: Release
 on:
   workflow_run:
     workflows: ["Tests", "Build"]
-    types:
-      - completed
-    branches: [ main ]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: read
 
 jobs:
-  release:
-    name: Create Release Tag
+  gate-and-release:
+    name: Gate & Tag/Release
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Fetch all history for semantic versioning
-        
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Get latest commit message
-      id: commit_message
-      run: echo "message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
-      
-    - name: Run semantic versioning script
-      id: version
-      run: |
-        # Run the semantic versioning script
-        node scripts/semantic-version.js
-        
-        # Get the latest tag that was created
-        LATEST_TAG=$(git describe --tags --abbrev=0)
-        echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
-        echo "version=${LATEST_TAG#v}" >> $GITHUB_OUTPUT
-        
-    - name: Push tags
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git push origin --tags
-        
-    - name: Create GitHub Release
-      if: success() && steps.version.outputs.tag != ''
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.version.outputs.tag }}
-        release_name: Release ${{ steps.version.outputs.version }}
-        body: |
-          ## Changes
-          ${{ steps.commit_message.outputs.message }}
-          
-          ## Automated Release
-          This release was automatically created based on conventional commits.
-        draft: false
-        prerelease: false
+      - name: Extract head SHA
+        id: sha
+        run: echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Wait a moment for parallel run to finish
+        run: sleep 8
+
+      - name: Verify BOTH 'Tests' and 'Build' succeeded for the same SHA
+        id: gate
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = "${{ steps.sha.outputs.sha }}";
+            const { owner, repo } = context.repo;
+
+            // List last 50 workflow runs (push/pr)
+            const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner, repo, per_page: 50, branch: "main",
+            });
+
+            const ok = (name) => data.workflow_runs.find(r =>
+              r.head_sha === sha && r.name === name && r.conclusion === "success"
+            );
+
+            const testsOk = !!ok("Tests");
+            const buildOk = !!ok("Build");
+
+            core.info(`Tests OK: ${testsOk} | Build OK: ${buildOk} | SHA: ${sha}`);
+            if (!testsOk || !buildOk) core.setFailed("Not all required workflows succeeded for this commit.");
+
+      - name: Checkout (full history for tags)
+        if: ${{ steps.gate.outcome == 'success' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        if: ${{ steps.gate.outcome == 'success' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Compute next version
+        if: ${{ steps.gate.outcome == 'success' }}
+        id: version
+        run: |
+          node ./scripts/semantic-version.ci.js > version.txt
+          echo "version=$(cat version.txt)" >> "$GITHUB_OUTPUT"
+          echo "Next version: v$(cat version.txt)"
+
+      - name: Configure git user
+        if: ${{ steps.gate.outcome == 'success' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push tag (idempotent)
+        if: ${{ steps.gate.outcome == 'success' }}
+        run: |
+          V="v${{ steps.version.outputs.version }}"
+          if git rev-parse "$V" >/dev/null 2>&1; then
+            echo "Tag $V already exists. Skipping."
+          else
+            git tag -a "$V" -m "release: $V"
+            git push origin "$V"
+          fi
+
+      - name: Create GitHub Release
+        if: ${{ steps.gate.outcome == 'success' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          body: |
+            Automated release after successful Build & Tests on main.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
