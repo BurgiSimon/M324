@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ ! -f scripts/semantic-version.js && ! -f scripts/semantic-version.ci.js ]]; then
+  exit 0
+fi
+
+# Prefer CI calculator if present
+if [[ -f scripts/semantic-version.ci.js ]]; then
+  NEXT="$(node scripts/semantic-version.ci.js || true)"
+else
+  NEXT="$(node scripts/semantic-version.js || true)"
+fi
+
+if [[ -n "${NEXT:-}" ]]; then
+  echo "🛈 (post-commit) Next calculated version: v${NEXT}"
+fi

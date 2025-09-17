@@ -1,0 +1,27 @@
+#!/usr/bin/env node
+
+import fs from 'fs';
+const path = process.argv[2];
+const msg = fs.readFileSync(path, 'utf8').trim();
+
+// 1. Muss eine Ticketnummer enthalten: z. B. "ABC-123"
+const ticketRegex = /[A-Z]+-\d+/;
+
+// 2. Muss Conventional Commit entsprechen
+// Beispiele: feat(scope): message, fix: message, chore!: breaking change
+const conventionalRegex = /^(feat|fix|chore|docs|style|refactor|test|perf)(\([\w-]+\))?: .+/;
+
+if (!ticketRegex.test(msg)) {
+  console.error("❌ Commit Message muss eine Ticketnummer enthalten (z. B. PROJ-123).");
+  process.exit(1);
+}
+
+if (!conventionalRegex.test(msg)) {
+  console.error("❌ Commit Message muss dem Conventional Commits Standard entsprechen.");
+  process.exit(1);
+}
+
+console.log("✅ Commit Message akzeptiert:", msg);
+process.exit(0);
+
+
