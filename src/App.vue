@@ -4,7 +4,7 @@ import TextPressure from './components/TextPressure.vue'
 
 <template>
   <TextPressure
-    text="Hello M324"
+    text="Das hier ist ein Test 2"
     :flex="true"
     :alpha="false"
     :stroke="false"
