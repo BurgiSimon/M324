@@ -9,7 +9,7 @@ const ticketRegex = /[A-Z]+-\d+/;
 
 // 2. Muss Conventional Commit entsprechen
 // Beispiele: feat(scope): message, fix: message, chore!: breaking change
-const conventionalRegex = /^(feat|fix|chore|docs|style|refactor|test|perf)(\([\w-]+\))?: .+/;
+const conventionalRegex = /^(feat|fix|chore|docs|style|refactor|test|perf)(\([\w-]+\))?!: .+/;
 
 if (!ticketRegex.test(msg)) {
   console.error("❌ Commit Message muss eine Ticketnummer enthalten (z. B. PROJ-123).");
