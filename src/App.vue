@@ -4,7 +4,7 @@ import TextPressure from './components/TextPressure.vue'
 
 <template>
   <TextPressure
-    text="Das hier ist ein Test 2"
+    text="TERRAFORM WITH AUTO DEPLOY"
     :flex="true"
     :alpha="false"
     :stroke="false"
